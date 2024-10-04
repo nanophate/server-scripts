@@ -10,6 +10,8 @@
 SVC_NAME=contexts-service
 SVC_PORT=6005
 
+set -x
+
 printf '' >contexts.json
 
 INET_ADDR="$(ip -4 route get 192.0.2.1 | grep -o 'src [0-9.]\{1,\}' | awk '{ print $2 }')"
@@ -50,8 +52,9 @@ for CONTEXT in $CONTEXTS; do
                                     :context-id context-id
                                     :contexts keyvals}))))" "${GROUPING_ID}")
 
-  docker run --rm -it clojure \
-    bash -c "lein repl :connect \"${INET_ADDR}\":6005 <<< '$CLOJURE'" |
-    grep '{"organization-ref' \
-      >>contexts.json
+  docker run --rm clojure \
+    bash -c "lein repl :connect \"${INET_ADDR}\":6005 <<< '${CLOJURE}'" | \
+    sed -E 's/("name":"[^"]*")/"name":"MASKED"/g; s/("value":"[^"]*")/"value":"MASKED"/g' | \
+    tee /dev/tty | \
+    grep '{"organization-ref' >> contexts.json
 done
